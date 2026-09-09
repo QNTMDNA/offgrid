@@ -1,0 +1,765 @@
+// Off Grid platform data model.
+//
+// Four bounded contexts share one database:
+//   catalog   - races, editions, hospitality packages, inventory allocations
+//   commerce  - carts, orders, order items, guests, invoices, payments
+//   crm       - accounts, contacts, leads, opportunities, activities (mirrored to Salesforce)
+//   marketing - subscribers, segments, campaigns, sends, attribution touches
+//
+// Integration state (Salesforce, Wise, Speakeasy) is kept in `IntegrationLink` and
+// `IntegrationEvent` so that outbound sync is idempotent and replayable.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Catalog
+// ---------------------------------------------------------------------------
+
+enum EditionStatus {
+  DRAFT
+  ANNOUNCED
+  ON_SALE
+  WAITLIST
+  SOLD_OUT
+  COMPLETED
+  CANCELLED
+}
+
+/// A recurring grand prix venue, e.g. "Monaco".
+model Race {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  city      String
+  country   String
+  countryCode String
+  circuit   String?
+  timezone  String   @default("UTC")
+  heroImage String?
+  summary   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  editions RaceEdition[]
+}
+
+/// A single running of a race, e.g. "Monaco '26". The sellable unit of a season.
+model RaceEdition {
+  id        String        @id @default(cuid())
+  raceId    String
+  race      Race          @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  season    Int
+  slug      String        @unique
+  status    EditionStatus @default(DRAFT)
+  startsAt  DateTime
+  endsAt    DateTime
+  /// Public-facing announcement copy shown on the race page.
+  headline  String?
+  body      String?
+  /// Currency all packages for this edition are priced in.
+  currency  String        @default("USD")
+  capacity  Int           @default(0)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  packages      Package[]
+  guests        Guest[]
+  opportunities Opportunity[]
+  ticketBatches TicketBatch[]
+  sponsorships  Sponsorship[]
+
+  @@unique([raceId, season])
+  @@index([status, startsAt])
+}
+
+enum PackageKind {
+  TABLE
+  SEAT
+  SUITE
+  PADDOCK
+  ADD_ON
+  TRANSFER
+  ACCOMMODATION
+}
+
+/// A sellable hospitality product attached to a race edition.
+model Package {
+  id            String      @id @default(cuid())
+  editionId     String
+  edition       RaceEdition @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  sku           String      @unique
+  name          String
+  kind          PackageKind
+  description   String?
+  /// Price in minor units (cents) of the edition currency.
+  priceMinor    Int
+  /// Guests admitted per unit sold. A table of ten has seatsPerUnit = 10.
+  seatsPerUnit  Int         @default(1)
+  /// Total units that may ever be sold.
+  totalUnits    Int
+  /// Units withheld from public sale for partners and comps.
+  heldUnits     Int         @default(0)
+  inviteOnly    Boolean     @default(true)
+  sortOrder     Int         @default(0)
+  active        Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  allocations Allocation[]
+  orderItems  OrderItem[]
+  cartItems   CartItem[]
+
+  @@index([editionId, active])
+}
+
+enum AllocationStatus {
+  HELD
+  CONFIRMED
+  RELEASED
+}
+
+/// A claim on package inventory. Holds expire; confirmations do not.
+/// Availability is always derived as totalUnits - heldUnits - sum(active allocations).
+model Allocation {
+  id        String           @id @default(cuid())
+  packageId String
+  package   Package          @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  orderId   String?
+  order     Order?           @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  cartId    String?
+  cart      Cart?            @relation(fields: [cartId], references: [id], onDelete: SetNull)
+  units     Int
+  status    AllocationStatus @default(HELD)
+  expiresAt DateTime?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@index([packageId, status])
+  @@index([status, expiresAt])
+}
+
+// ---------------------------------------------------------------------------
+// Commerce
+// ---------------------------------------------------------------------------
+
+enum CartStatus {
+  OPEN
+  CONVERTED
+  ABANDONED
+  EXPIRED
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  token     String     @unique
+  status    CartStatus @default(OPEN)
+  email     String?
+  contactId String?
+  contact   Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  currency  String     @default("USD")
+  expiresAt DateTime
+  /// First-touch attribution captured when the cart was created.
+  touchId   String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  items       CartItem[]
+  allocations Allocation[]
+  order       Order?
+
+  @@index([status, expiresAt])
+}
+
+model CartItem {
+  id         String   @id @default(cuid())
+  cartId     String
+  cart       Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  packageId  String
+  package    Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  units      Int
+  /// Price captured at add-to-cart time so later price changes do not move the cart.
+  priceMinor Int
+  createdAt  DateTime @default(now())
+
+  @@unique([cartId, packageId])
+}
+
+enum OrderStatus {
+  PENDING
+  AWAITING_PAYMENT
+  PAID
+  PARTIALLY_REFUNDED
+  REFUNDED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  WISE_BANK_TRANSFER
+  CARD
+  MANUAL
+}
+
+model Order {
+  id           String        @id @default(cuid())
+  number       String        @unique
+  cartId       String?       @unique
+  cart         Cart?         @relation(fields: [cartId], references: [id], onDelete: SetNull)
+  contactId    String
+  contact      Contact       @relation(fields: [contactId], references: [id])
+  accountId    String?
+  account      Account?      @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  status       OrderStatus   @default(PENDING)
+  currency     String
+  subtotalMinor Int
+  feeMinor      Int          @default(0)
+  totalMinor    Int
+  paidMinor     Int          @default(0)
+  method       PaymentMethod @default(WISE_BANK_TRANSFER)
+  notes        String?
+  placedAt     DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  items       OrderItem[]
+  allocations Allocation[]
+  guests      Guest[]
+  invoice     Invoice?
+  payments    Payment[]
+  opportunity Opportunity?
+
+  @@index([status, placedAt])
+}
+
+model OrderItem {
+  id          String  @id @default(cuid())
+  orderId     String
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  packageId   String
+  package     Package @relation(fields: [packageId], references: [id])
+  /// Denormalised so the order remains readable if the package is renamed.
+  packageName String
+  units       Int
+  priceMinor  Int
+  totalMinor  Int
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  VOID
+}
+
+/// A bank-transfer invoice. Payment instructions come from a Wise receiving account.
+model Invoice {
+  id            String        @id @default(cuid())
+  orderId       String        @unique
+  order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  number        String        @unique
+  status        InvoiceStatus @default(DRAFT)
+  currency      String
+  amountMinor   Int
+  dueAt         DateTime
+  /// Reference the payer must quote; used to reconcile Wise deposits.
+  reference     String        @unique
+  /// Snapshot of the Wise receiving-account details rendered on the invoice.
+  bankDetails   Json?
+  issuedAt      DateTime?
+  paidAt        DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+enum PaymentStatus {
+  PENDING
+  SETTLED
+  FAILED
+  REFUNDED
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  orderId     String
+  order       Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  method      PaymentMethod
+  status      PaymentStatus @default(PENDING)
+  currency    String
+  amountMinor Int
+  /// Wise balance-deposit or card-charge identifier.
+  externalId  String?
+  receivedAt  DateTime?
+  raw         Json?
+  createdAt   DateTime      @default(now())
+
+  @@unique([method, externalId])
+}
+
+enum GuestStatus {
+  INVITED
+  REGISTERED
+  TICKETED
+  CHECKED_IN
+  NO_SHOW
+  CANCELLED
+}
+
+/// A named attendee occupying a seat from an order.
+model Guest {
+  id         String      @id @default(cuid())
+  orderId    String
+  order      Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  editionId  String
+  edition    RaceEdition @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  firstName  String
+  lastName   String
+  email      String
+  phone      String?
+  status     GuestStatus @default(INVITED)
+  dietary    String?
+  /// Ticket identifier issued by Speakeasy.
+  ticketRef  String?     @unique
+  checkedInAt DateTime?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([editionId, status])
+}
+
+/// A batch of tickets pushed to Speakeasy for one edition.
+model TicketBatch {
+  id         String      @id @default(cuid())
+  editionId  String
+  edition    RaceEdition @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  orderId    String
+  externalId String?
+  guestCount Int
+  syncedAt   DateTime?
+  createdAt  DateTime    @default(now())
+
+  @@index([editionId])
+}
+
+// ---------------------------------------------------------------------------
+// CRM
+// ---------------------------------------------------------------------------
+
+enum AccountTier {
+  PROSPECT
+  MEMBER
+  PARTNER
+  SPONSOR
+  VENUE
+}
+
+model Account {
+  id        String      @id @default(cuid())
+  name      String
+  tier      AccountTier @default(PROSPECT)
+  domain    String?
+  country   String?
+  website   String?
+  notes     String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  contacts      Contact[]
+  opportunities Opportunity[]
+  orders        Order[]
+  partner       Partner?
+}
+
+model Contact {
+  id          String   @id @default(cuid())
+  accountId   String?
+  account     Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  email       String   @unique
+  firstName   String
+  lastName    String
+  phone       String?
+  title       String?
+  country     String?
+  /// Marketing consent, captured separately from transactional contactability.
+  optedIn     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  leads         Lead[]
+  opportunities Opportunity[]
+  orders        Order[]
+  carts         Cart[]
+  activities    Activity[]
+  subscriber    Subscriber?
+}
+
+enum LeadSource {
+  REQUEST_ACCESS
+  SPONSOR_INQUIRY
+  NEWSLETTER
+  REFERRAL
+  IMPORT
+}
+
+enum LeadStatus {
+  NEW
+  WORKING
+  QUALIFIED
+  CONVERTED
+  DISQUALIFIED
+}
+
+/// An inbound expression of interest from the marketing site.
+model Lead {
+  id          String     @id @default(cuid())
+  contactId   String
+  contact     Contact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  source      LeadSource
+  status      LeadStatus @default(NEW)
+  company     String?
+  message     String?
+  /// Race editions the lead asked about.
+  interests   String[]   @default([])
+  budgetMinor Int?
+  currency    String?
+  partySize   Int?
+  touchId     String?
+  touch       Touch?     @relation(fields: [touchId], references: [id], onDelete: SetNull)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([status, createdAt])
+}
+
+enum OpportunityStage {
+  QUALIFICATION
+  PROPOSAL
+  NEGOTIATION
+  CLOSED_WON
+  CLOSED_LOST
+}
+
+model Opportunity {
+  id          String           @id @default(cuid())
+  name        String
+  accountId   String?
+  account     Account?         @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  contactId   String?
+  contact     Contact?         @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  editionId   String?
+  edition     RaceEdition?     @relation(fields: [editionId], references: [id], onDelete: SetNull)
+  orderId     String?          @unique
+  order       Order?           @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  stage       OpportunityStage @default(QUALIFICATION)
+  amountMinor Int              @default(0)
+  currency    String           @default("USD")
+  closeDate   DateTime
+  ownerEmail  String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([stage, closeDate])
+}
+
+enum ActivityKind {
+  NOTE
+  EMAIL
+  CALL
+  MEETING
+  SYSTEM
+}
+
+model Activity {
+  id        String       @id @default(cuid())
+  contactId String
+  contact   Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  kind      ActivityKind
+  subject   String
+  body      String?
+  actor     String?
+  createdAt DateTime     @default(now())
+
+  @@index([contactId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Partners, sponsorships and payouts
+// ---------------------------------------------------------------------------
+
+enum PartnerKind {
+  BRAND
+  VENUE
+  SUPPLIER
+  AGENCY
+}
+
+model Partner {
+  id          String      @id @default(cuid())
+  accountId   String      @unique
+  account     Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  kind        PartnerKind
+  /// Currency this partner is paid in.
+  payoutCurrency String   @default("EUR")
+  /// Wise recipient-account id, created once and reused for every payout.
+  wiseRecipientId String?
+  /// Whether the partner is listed publicly on the partners page.
+  showcase    Boolean     @default(false)
+  active      Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  payouts      Payout[]
+  sponsorships Sponsorship[]
+}
+
+model Sponsorship {
+  id          String      @id @default(cuid())
+  partnerId   String
+  partner     Partner     @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  editionId   String
+  edition     RaceEdition @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  tier        String
+  valueMinor  Int
+  currency    String
+  createdAt   DateTime    @default(now())
+
+  @@unique([partnerId, editionId])
+}
+
+enum PayoutStatus {
+  DRAFT
+  QUOTED
+  FUNDED
+  SENT
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+/// An outbound payment to a partner, executed through Wise.
+model Payout {
+  id             String       @id @default(cuid())
+  partnerId      String
+  partner        Partner      @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  reference      String       @unique
+  status         PayoutStatus @default(DRAFT)
+  sourceCurrency String
+  targetCurrency String
+  /// Amount to be received by the partner, in minor units of targetCurrency.
+  amountMinor    Int
+  /// Cost to Off Grid once the quote is locked, in minor units of sourceCurrency.
+  sourceAmountMinor Int?
+  feeMinor       Int?
+  rate           Float?
+  wiseQuoteId    String?
+  wiseTransferId String?
+  failureReason  String?
+  quotedAt       DateTime?
+  fundedAt       DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([status, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Marketing
+// ---------------------------------------------------------------------------
+
+enum SubscriberStatus {
+  PENDING
+  SUBSCRIBED
+  UNSUBSCRIBED
+  BOUNCED
+}
+
+model Subscriber {
+  id           String           @id @default(cuid())
+  email        String           @unique
+  contactId    String?          @unique
+  contact      Contact?         @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  status       SubscriberStatus @default(PENDING)
+  /// Free-form labels used by segment rules, e.g. "madrid-26", "vip".
+  tags         String[]         @default([])
+  confirmToken String?          @unique
+  confirmedAt  DateTime?
+  unsubscribedAt DateTime?
+  touchId      String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  sends CampaignSend[]
+
+  @@index([status])
+}
+
+/// A saved audience definition. `rules` is a JSON predicate evaluated by the
+/// segment engine in src/lib/marketing/segments.ts.
+model Segment {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?
+  rules       Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  campaigns Campaign[]
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  CANCELLED
+}
+
+model Campaign {
+  id          String         @id @default(cuid())
+  name        String
+  subject     String
+  preheader   String?
+  bodyMarkdown String
+  segmentId   String
+  segment     Segment        @relation(fields: [segmentId], references: [id])
+  status      CampaignStatus @default(DRAFT)
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  sends CampaignSend[]
+}
+
+enum SendStatus {
+  QUEUED
+  SENT
+  FAILED
+  OPENED
+  CLICKED
+}
+
+model CampaignSend {
+  id           String     @id @default(cuid())
+  campaignId   String
+  campaign     Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  subscriberId String
+  subscriber   Subscriber @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+  status       SendStatus @default(QUEUED)
+  error        String?
+  sentAt       DateTime?
+  openedAt     DateTime?
+  clickedAt    DateTime?
+
+  @@unique([campaignId, subscriberId])
+}
+
+/// A marketing touch (UTM landing) used for first-touch attribution.
+model Touch {
+  id          String   @id @default(cuid())
+  anonymousId String
+  source      String?
+  medium      String?
+  campaign    String?
+  content     String?
+  term        String?
+  referrer    String?
+  landingPath String
+  createdAt   DateTime @default(now())
+
+  leads Lead[]
+
+  @@index([anonymousId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Integration plumbing
+// ---------------------------------------------------------------------------
+
+enum IntegrationSystem {
+  SALESFORCE
+  WISE
+  SPEAKEASY
+}
+
+/// Maps a local record to its counterpart in an external system.
+model IntegrationLink {
+  id         String            @id @default(cuid())
+  system     IntegrationSystem
+  entity     String
+  localId    String
+  externalId String
+  syncedAt   DateTime          @default(now())
+  payload    Json?
+
+  @@unique([system, entity, localId])
+  @@index([system, externalId])
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+}
+
+/// Transactional outbox. Domain writes enqueue an event; the worker drains it.
+/// Keeps external calls out of the request path and makes them retryable.
+model OutboxEvent {
+  id          String            @id @default(cuid())
+  system      IntegrationSystem
+  topic       String
+  payload     Json
+  status      OutboxStatus      @default(PENDING)
+  attempts    Int               @default(0)
+  lastError   String?
+  availableAt DateTime          @default(now())
+  processedAt DateTime?
+  createdAt   DateTime          @default(now())
+
+  @@index([status, availableAt])
+}
+
+/// Raw inbound webhook deliveries, stored before processing for idempotency and replay.
+model WebhookDelivery {
+  id          String            @id @default(cuid())
+  system      IntegrationSystem
+  externalId  String
+  eventType   String
+  payload     Json
+  processedAt DateTime?
+  error       String?
+  createdAt   DateTime          @default(now())
+
+  @@unique([system, externalId])
+}
+
+// ---------------------------------------------------------------------------
+// Admin access
+// ---------------------------------------------------------------------------
+
+enum AdminRole {
+  ADMIN
+  SALES
+  OPERATIONS
+  MARKETING
+  READ_ONLY
+}
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  role         AdminRole @default(READ_ONLY)
+  active       Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
