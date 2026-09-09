@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect } from "react";
 import { setCartLineAction } from "@/app/actions/commerce";
 import type { FormState } from "@/app/actions/marketing";
 import { Button, Notice, inputClass } from "@/components/ui";
@@ -17,6 +18,11 @@ export function AddToCart({
   disabled?: boolean;
 }) {
   const [state, action, pending] = useActionState(setCartLineAction, initial);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (state.status === "ok") router.push("/cart");
+  }, [state, router]);
 
   if (disabled || maxUnits <= 0) {
     return <p className="eyebrow text-paper/40">Waitlist only</p>;
@@ -39,10 +45,8 @@ export function AddToCart({
           {pending ? "Reserving…" : "Reserve"}
         </Button>
       </div>
-      {state.message ? (
-        <Notice tone={state.status === "error" ? "error" : "success"}>
-          {state.message}
-        </Notice>
+      {state.status === "error" && state.message ? (
+        <Notice tone="error">{state.message}</Notice>
       ) : null}
     </form>
   );
