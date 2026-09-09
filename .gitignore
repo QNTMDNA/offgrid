@@ -41,5 +41,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# investor documents (private uploads, never committed)
+# sponsor lounge documents and uploaded media (never committed)
 /storage

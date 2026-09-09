@@ -9,15 +9,15 @@ import { prisma } from "@/lib/db";
 import { currentSession } from "@/lib/auth/session";
 import { can, type Capability } from "@/lib/auth/rbac";
 import {
-  endInvestorSession,
-  startInvestorSession,
-} from "@/lib/investors/session";
-import { generatePasscode, normalisePasscode } from "@/lib/investors/passcode";
+  endLoungeSession,
+  startLoungeSession,
+} from "@/lib/lounge/session";
+import { generatePasscode, normalisePasscode } from "@/lib/lounge/passcode";
 import {
   UnsupportedDocumentError,
   deleteDocument,
   putDocument,
-} from "@/lib/investors/storage";
+} from "@/lib/lounge/storage";
 import type { FormState } from "@/app/actions/marketing";
 
 const BCRYPT_ROUNDS = 12;
@@ -44,47 +44,47 @@ const signInSchema = z.object({
   passcode: z.string().min(1),
 });
 
-export async function investorSignInAction(
+export async function loungeSignInAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
   const parsed = signInSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { status: "error", message: "Invalid credentials" };
 
-  const investor = await prisma.investorUser.findUnique({
+  const member = await prisma.loungeMember.findUnique({
     where: { email: parsed.data.email.toLowerCase() },
   });
   const passcode = normalisePasscode(parsed.data.passcode);
   if (
-    !investor ||
-    !investor.active ||
-    !(await compare(passcode, investor.passcodeHash))
+    !member ||
+    !member.active ||
+    !(await compare(passcode, member.passcodeHash))
   ) {
     return { status: "error", message: "Invalid credentials" };
   }
 
   const context = await requestContext();
   await prisma.$transaction([
-    prisma.investorUser.update({
-      where: { id: investor.id },
+    prisma.loungeMember.update({
+      where: { id: member.id },
       data: { lastLoginAt: new Date() },
     }),
-    prisma.investorAccess.create({
-      data: { investorId: investor.id, kind: "SIGN_IN", ...context },
+    prisma.loungeAccess.create({
+      data: { memberId: member.id, kind: "SIGN_IN", ...context },
     }),
   ]);
 
-  await startInvestorSession({
-    investorId: investor.id,
-    email: investor.email,
-    name: investor.name,
+  await startLoungeSession({
+    memberId: member.id,
+    email: member.email,
+    name: member.name,
   });
-  redirect("/investors");
+  redirect("/sponsor-lounge");
 }
 
-export async function investorSignOutAction(): Promise<void> {
-  await endInvestorSession();
-  redirect("/investors/login");
+export async function loungeSignOutAction(): Promise<void> {
+  await endLoungeSession();
+  redirect("/sponsor-lounge/login");
 }
 
 const inviteSchema = z.object({
@@ -93,11 +93,11 @@ const inviteSchema = z.object({
   organization: z.string().optional(),
 });
 
-export async function inviteInvestorAction(
+export async function inviteMemberAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const admin = await guard("investors:write");
+  const admin = await guard("lounge:write");
   const parsed = inviteSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { status: "error", message: "Invalid input" };
 
@@ -105,7 +105,7 @@ export async function inviteInvestorAction(
   const passcode = generatePasscode();
   const passcodeHash = await hash(normalisePasscode(passcode), BCRYPT_ROUNDS);
 
-  await prisma.investorUser.upsert({
+  await prisma.loungeMember.upsert({
     where: { email },
     create: {
       email,
@@ -122,7 +122,7 @@ export async function inviteInvestorAction(
     },
   });
 
-  revalidatePath("/admin/investors");
+  revalidatePath("/admin/sponsor-lounge");
   return {
     status: "ok",
     // Shown once: only the hash is stored, so a lost passcode has to be reissued.
@@ -130,12 +130,12 @@ export async function inviteInvestorAction(
   };
 }
 
-export async function setInvestorActiveAction(formData: FormData): Promise<void> {
-  await guard("investors:write");
-  const id = String(formData.get("investorId") ?? "");
+export async function setMemberActiveAction(formData: FormData): Promise<void> {
+  await guard("lounge:write");
+  const id = String(formData.get("memberId") ?? "");
   const active = String(formData.get("active") ?? "") === "true";
-  await prisma.investorUser.update({ where: { id }, data: { active } });
-  revalidatePath("/admin/investors");
+  await prisma.loungeMember.update({ where: { id }, data: { active } });
+  revalidatePath("/admin/sponsor-lounge");
 }
 
 const documentSchema = z.object({
@@ -145,11 +145,11 @@ const documentSchema = z.object({
   publish: z.string().nullish(),
 });
 
-export async function uploadInvestorDocumentAction(
+export async function uploadLoungeDocumentAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  await guard("investors:write");
+  await guard("lounge:write");
   const parsed = documentSchema.safeParse({
     title: formData.get("title"),
     summary: formData.get("summary"),
@@ -172,7 +172,7 @@ export async function uploadInvestorDocumentAction(
   }
 
   const published = parsed.data.publish === "on";
-  await prisma.investorDocument.create({
+  await prisma.loungeDocument.create({
     data: {
       title: parsed.data.title,
       summary: parsed.data.summary || null,
@@ -186,28 +186,28 @@ export async function uploadInvestorDocumentAction(
     },
   });
 
-  revalidatePath("/admin/investors");
-  revalidatePath("/investors");
+  revalidatePath("/admin/sponsor-lounge");
+  revalidatePath("/sponsor-lounge");
   return { status: "ok", message: `${parsed.data.title} uploaded.` };
 }
 
 export async function setDocumentPublishedAction(formData: FormData): Promise<void> {
-  await guard("investors:write");
+  await guard("lounge:write");
   const id = String(formData.get("documentId") ?? "");
   const published = String(formData.get("published") ?? "") === "true";
-  await prisma.investorDocument.update({
+  await prisma.loungeDocument.update({
     where: { id },
     data: { published, publishedAt: published ? new Date() : null },
   });
-  revalidatePath("/admin/investors");
-  revalidatePath("/investors");
+  revalidatePath("/admin/sponsor-lounge");
+  revalidatePath("/sponsor-lounge");
 }
 
-export async function deleteInvestorDocumentAction(formData: FormData): Promise<void> {
-  await guard("investors:write");
+export async function deleteLoungeDocumentAction(formData: FormData): Promise<void> {
+  await guard("lounge:write");
   const id = String(formData.get("documentId") ?? "");
-  const document = await prisma.investorDocument.delete({ where: { id } });
+  const document = await prisma.loungeDocument.delete({ where: { id } });
   await deleteDocument(document.storageKey);
-  revalidatePath("/admin/investors");
-  revalidatePath("/investors");
+  revalidatePath("/admin/sponsor-lounge");
+  revalidatePath("/sponsor-lounge");
 }

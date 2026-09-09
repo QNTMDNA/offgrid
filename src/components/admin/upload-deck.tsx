@@ -1,14 +1,14 @@
 "use client";
 
 import { useActionState } from "react";
-import { uploadInvestorDocumentAction } from "@/app/actions/investors";
+import { uploadLoungeDocumentAction } from "@/app/actions/lounge";
 import type { FormState } from "@/app/actions/marketing";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 
 const initial: FormState = { status: "idle" };
 
 export function UploadDeck() {
-  const [state, action, pending] = useActionState(uploadInvestorDocumentAction, initial);
+  const [state, action, pending] = useActionState(uploadLoungeDocumentAction, initial);
 
   return (
     <form action={action} className="space-y-6 border border-paper/15 p-6">
@@ -35,7 +35,7 @@ export function UploadDeck() {
       </Field>
       <label className="flex items-center gap-3 text-sm text-paper/60">
         <input type="checkbox" name="publish" defaultChecked />
-        Publish to the investor room immediately
+        Publish to the Sponsor Lounge immediately
       </label>
       <Button type="submit" disabled={pending}>
         {pending ? "Uploading…" : "Upload"}

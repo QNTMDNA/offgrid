@@ -3,11 +3,11 @@ import { prisma } from "@/lib/db";
 import { currentSession } from "@/lib/auth/session";
 import { can } from "@/lib/auth/rbac";
 import {
-  deleteInvestorDocumentAction,
+  deleteLoungeDocumentAction,
   setDocumentPublishedAction,
-  setInvestorActiveAction,
-} from "@/app/actions/investors";
-import { InviteInvestor } from "@/components/admin/invite-investor";
+  setMemberActiveAction,
+} from "@/app/actions/lounge";
+import { InviteMember } from "@/components/admin/invite-member";
 import { UploadDeck } from "@/components/admin/upload-deck";
 import { Cell, Empty, PageHeader, Table } from "@/components/admin/table";
 import { Button } from "@/components/ui";
@@ -20,31 +20,31 @@ const DATE_TIME = new Intl.DateTimeFormat("en-GB", {
   timeZone: "UTC",
 });
 
-export default async function InvestorsAdminPage() {
+export default async function SponsorLoungeAdminPage() {
   const session = await currentSession();
-  if (!session || !can(session.role, "investors:read")) notFound();
+  if (!session || !can(session.role, "lounge:read")) notFound();
 
-  const [investors, documents, accessLog] = await Promise.all([
-    prisma.investorUser.findMany({
+  const [members, documents, accessLog] = await Promise.all([
+    prisma.loungeMember.findMany({
       orderBy: { createdAt: "desc" },
       include: { _count: { select: { accessLog: true } } },
     }),
-    prisma.investorDocument.findMany({
+    prisma.loungeDocument.findMany({
       orderBy: { createdAt: "desc" },
       include: { _count: { select: { accessLog: true } } },
     }),
-    prisma.investorAccess.findMany({
+    prisma.loungeAccess.findMany({
       orderBy: { createdAt: "desc" },
       take: 40,
-      include: { investor: true, document: true },
+      include: { member: true, document: true },
     }),
   ]);
 
   return (
     <div className="space-y-12">
       <PageHeader
-        title="Investor room"
-        subtitle="Passcode-gated decks and reporting at /investors. Every sign-in and document open is logged."
+        title="Sponsor Lounge"
+        subtitle="Passcode-gated decks and reporting at /sponsor-lounge. Every sign-in and document open is logged."
       />
 
       <UploadDeck />
@@ -77,7 +77,7 @@ export default async function InvestorsAdminPage() {
                 </form>
               </Cell>
               <Cell muted>
-                <form action={deleteInvestorDocumentAction}>
+                <form action={deleteLoungeDocumentAction}>
                   <input type="hidden" name="documentId" value={document.id} />
                   <Button type="submit" variant="ghost">
                     Delete
@@ -90,44 +90,44 @@ export default async function InvestorsAdminPage() {
         {documents.length === 0 ? <Empty>No documents uploaded yet.</Empty> : null}
       </section>
 
-      <InviteInvestor />
+      <InviteMember />
 
       <section className="space-y-4">
         <h2 className="eyebrow text-paper/40">Access list</h2>
-        <Table columns={["Investor", "Organisation", "Last sign-in", "Events", ""]}>
-          {investors.map((investor) => (
-            <tr key={investor.id}>
+        <Table columns={["Member", "Organisation", "Last sign-in", "Events", ""]}>
+          {members.map((member) => (
+            <tr key={member.id}>
               <Cell>
-                {investor.name}
-                <span className="ml-2 text-paper/40">{investor.email}</span>
+                {member.name}
+                <span className="ml-2 text-paper/40">{member.email}</span>
               </Cell>
-              <Cell muted>{investor.organization ?? "—"}</Cell>
+              <Cell muted>{member.organization ?? "—"}</Cell>
               <Cell muted>
-                {investor.lastLoginAt ? DATE_TIME.format(investor.lastLoginAt) : "never"}
+                {member.lastLoginAt ? DATE_TIME.format(member.lastLoginAt) : "never"}
               </Cell>
-              <Cell muted>{investor._count.accessLog}</Cell>
+              <Cell muted>{member._count.accessLog}</Cell>
               <Cell muted>
-                <form action={setInvestorActiveAction}>
-                  <input type="hidden" name="investorId" value={investor.id} />
-                  <input type="hidden" name="active" value={String(!investor.active)} />
+                <form action={setMemberActiveAction}>
+                  <input type="hidden" name="memberId" value={member.id} />
+                  <input type="hidden" name="active" value={String(!member.active)} />
                   <Button type="submit" variant="ghost">
-                    {investor.active ? "Active — revoke" : "Revoked — restore"}
+                    {member.active ? "Active — revoke" : "Revoked — restore"}
                   </Button>
                 </form>
               </Cell>
             </tr>
           ))}
         </Table>
-        {investors.length === 0 ? <Empty>Nobody has been granted access yet.</Empty> : null}
+        {members.length === 0 ? <Empty>Nobody has been granted access yet.</Empty> : null}
       </section>
 
       <section className="space-y-4">
         <h2 className="eyebrow text-paper/40">Recent activity</h2>
-        <Table columns={["When", "Investor", "Event", "Document", "IP"]}>
+        <Table columns={["When", "Member", "Event", "Document", "IP"]}>
           {accessLog.map((entry) => (
             <tr key={entry.id}>
               <Cell muted>{DATE_TIME.format(entry.createdAt)}</Cell>
-              <Cell>{entry.investor.email}</Cell>
+              <Cell>{entry.member.email}</Cell>
               <Cell muted>{entry.kind.replace("_", " ").toLowerCase()}</Cell>
               <Cell muted>{entry.document?.title ?? "—"}</Cell>
               <Cell muted>

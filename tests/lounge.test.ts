@@ -1,14 +1,14 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { generatePasscode, normalisePasscode } from "@/lib/investors/passcode";
-import { safeFilename } from "@/lib/investors/storage";
+import { generatePasscode, normalisePasscode } from "@/lib/lounge/passcode";
+import { safeFilename } from "@/lib/lounge/storage";
 import { resetEnvCache } from "@/lib/env";
 import {
-  signInvestorSession,
-  verifyInvestorSession,
-} from "@/lib/investors/session";
+  signLoungeSession,
+  verifyLoungeSession,
+} from "@/lib/lounge/session";
 import { signSession, verifySession } from "@/lib/auth/session";
 
-describe("investor passcodes", () => {
+describe("member passcodes", () => {
   it("issues readable codes without ambiguous characters", () => {
     for (let i = 0; i < 50; i += 1) {
       const passcode = generatePasscode();
@@ -26,7 +26,7 @@ describe("investor passcodes", () => {
   });
 });
 
-describe("investor sessions", () => {
+describe("member sessions", () => {
   beforeAll(() => {
     process.env.DATABASE_URL = "postgresql://localhost:5432/test";
     process.env.SESSION_SECRET = "x".repeat(40);
@@ -35,17 +35,17 @@ describe("investor sessions", () => {
   });
 
   it("round-trips its own token", async () => {
-    const token = await signInvestorSession({
-      investorId: "inv_1",
+    const token = await signLoungeSession({
+      memberId: "inv_1",
       email: "lp@example.com",
       name: "LP",
     });
-    expect(await verifyInvestorSession(token)).toMatchObject({ investorId: "inv_1" });
+    expect(await verifyLoungeSession(token)).toMatchObject({ memberId: "inv_1" });
   });
 
   it("is not interchangeable with an admin session", async () => {
-    const investorToken = await signInvestorSession({
-      investorId: "inv_1",
+    const memberToken = await signLoungeSession({
+      memberId: "inv_1",
       email: "lp@example.com",
       name: "LP",
     });
@@ -56,8 +56,8 @@ describe("investor sessions", () => {
       role: "ADMIN",
     });
 
-    expect(await verifySession(investorToken)).toBeNull();
-    expect(await verifyInvestorSession(adminToken)).toBeNull();
+    expect(await verifySession(memberToken)).toBeNull();
+    expect(await verifyLoungeSession(adminToken)).toBeNull();
   });
 });
 

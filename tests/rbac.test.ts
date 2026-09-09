@@ -14,12 +14,12 @@ describe("rbac", () => {
     expect(can("OPERATIONS", "payouts:write")).toBe(true);
   });
 
-  it("reserves the investor room for admins", () => {
-    expect(can("ADMIN", "investors:read")).toBe(true);
-    expect(can("ADMIN", "investors:write")).toBe(true);
+  it("reserves the Sponsor Lounge for admins", () => {
+    expect(can("ADMIN", "lounge:read")).toBe(true);
+    expect(can("ADMIN", "lounge:write")).toBe(true);
     for (const role of ["SALES", "OPERATIONS", "MARKETING", "READ_ONLY"] as const) {
-      expect(can(role, "investors:read")).toBe(false);
-      expect(can(role, "investors:write")).toBe(false);
+      expect(can(role, "lounge:read")).toBe(false);
+      expect(can(role, "lounge:write")).toBe(false);
     }
   });
 

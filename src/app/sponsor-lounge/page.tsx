@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { currentInvestor } from "@/lib/investors/session";
-import { investorSignOutAction } from "@/app/actions/investors";
+import { currentMember } from "@/lib/lounge/session";
+import { loungeSignOutAction } from "@/app/actions/lounge";
 import { Button, ButtonLink } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -18,11 +18,11 @@ function fileSize(bytes: number): string {
   return mb >= 1 ? `${mb.toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
-export default async function InvestorRoomPage() {
-  const investor = await currentInvestor();
-  if (!investor) redirect("/investors/login");
+export default async function MemberRoomPage() {
+  const member = await currentMember();
+  if (!member) redirect("/sponsor-lounge/login");
 
-  const documents = await prisma.investorDocument.findMany({
+  const documents = await prisma.loungeDocument.findMany({
     where: { published: true },
     orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
   });
@@ -34,11 +34,11 @@ export default async function InvestorRoomPage() {
           <p className="eyebrow text-paper/50">Confidential</p>
           <h1 className="mt-4 text-3xl font-light">Decks and reporting</h1>
           <p className="mt-4 max-w-xl text-sm text-paper/50">
-            Signed in as {investor.name}. These documents are confidential and provided
+            Signed in as {member.name}. These documents are confidential and provided
             under the terms of your NDA. Downloads are recorded against your account.
           </p>
         </div>
-        <form action={investorSignOutAction}>
+        <form action={loungeSignOutAction}>
           <Button type="submit" variant="ghost">
             Sign out
           </Button>
@@ -68,13 +68,13 @@ export default async function InvestorRoomPage() {
             </div>
             <div className="flex gap-3">
               <ButtonLink
-                href={`/investors/documents/${document.id}`}
+                href={`/sponsor-lounge/documents/${document.id}`}
                 variant="outline"
                 target="_blank"
               >
                 View
               </ButtonLink>
-              <ButtonLink href={`/investors/documents/${document.id}?download=1`}>
+              <ButtonLink href={`/sponsor-lounge/documents/${document.id}?download=1`}>
                 Download
               </ButtonLink>
             </div>

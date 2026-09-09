@@ -3,12 +3,12 @@ import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 /**
- * Investor documents are private, so they are never served from /public. The
+ * Member documents are private, so they are never served from /public. The
  * local driver keeps them outside the build output and is the only driver for
  * now; a hosted deployment needs an object-store driver behind this interface.
  */
 const ROOT = path.resolve(
-  process.env.INVESTOR_STORAGE_DIR ?? path.join(process.cwd(), "storage/investors"),
+  process.env.LOUNGE_STORAGE_DIR ?? path.join(process.cwd(), "storage/lounge"),
 );
 
 const MAX_BYTES = 64 * 1024 * 1024;
@@ -33,7 +33,7 @@ export function safeFilename(name: string): string {
 function resolveKey(key: string): string {
   const resolved = path.resolve(ROOT, key);
   if (resolved !== ROOT && !resolved.startsWith(ROOT + path.sep)) {
-    throw new Error("Storage key escapes the investor storage root");
+    throw new Error("Storage key escapes the member storage root");
   }
   return resolved;
 }

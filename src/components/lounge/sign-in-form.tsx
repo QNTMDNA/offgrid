@@ -1,14 +1,14 @@
 "use client";
 
 import { useActionState } from "react";
-import { investorSignInAction } from "@/app/actions/investors";
+import { loungeSignInAction } from "@/app/actions/lounge";
 import type { FormState } from "@/app/actions/marketing";
 import { Button, Field, Notice, inputClass } from "@/components/ui";
 
 const initial: FormState = { status: "idle" };
 
-export function InvestorSignInForm() {
-  const [state, action, pending] = useActionState(investorSignInAction, initial);
+export function LoungeSignInForm() {
+  const [state, action, pending] = useActionState(loungeSignInAction, initial);
 
   return (
     <form action={action} className="space-y-6">

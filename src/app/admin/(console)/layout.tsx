@@ -14,7 +14,7 @@ const NAV: Array<{ href: string; label: string; capability?: Capability }> = [
   { href: "/admin/payouts", label: "Payouts" },
   { href: "/admin/marketing", label: "Marketing" },
   { href: "/admin/integrations", label: "Integrations" },
-  { href: "/admin/investors", label: "Investor room", capability: "investors:read" },
+  { href: "/admin/sponsor-lounge", label: "Sponsor Lounge", capability: "lounge:read" },
 ];
 
 export default async function ConsoleLayout({ children }: { children: ReactNode }) {

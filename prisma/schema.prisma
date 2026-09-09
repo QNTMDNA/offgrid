@@ -765,12 +765,12 @@ model AdminUser {
 }
 
 // ---------------------------------------------------------------------------
-// Investor relations
+// Sponsor Lounge
 // ---------------------------------------------------------------------------
 
-/// Someone granted access to the private investor material. Separate from
+/// Someone granted access to the private Sponsor Lounge material. Separate from
 /// AdminUser: no console access, and a passcode we issue rather than a password.
-model InvestorUser {
+model LoungeMember {
   id           String    @id @default(cuid())
   email        String    @unique
   name         String
@@ -782,12 +782,12 @@ model InvestorUser {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  accessLog InvestorAccess[]
+  accessLog LoungeAccess[]
 }
 
-/// A deck or document in the investor room. The file itself lives in object
+/// A deck or document in the Sponsor Lounge. The file itself lives in object
 /// storage; only its key is stored here.
-model InvestorDocument {
+model LoungeDocument {
   id          String    @id @default(cuid())
   title       String
   summary     String?
@@ -801,30 +801,30 @@ model InvestorDocument {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  accessLog InvestorAccess[]
+  accessLog LoungeAccess[]
 
   @@index([published, publishedAt])
 }
 
-enum InvestorAccessKind {
+enum LoungeAccessKind {
   SIGN_IN
   VIEW
   DOWNLOAD
 }
 
-/// Audit trail: who signed in and which document they opened. Investor
+/// Audit trail: who signed in and which document they opened. Sponsor
 /// relations is expected to be able to answer both questions.
-model InvestorAccess {
+model LoungeAccess {
   id         String             @id @default(cuid())
-  investorId String
-  investor   InvestorUser       @relation(fields: [investorId], references: [id], onDelete: Cascade)
+  memberId   String
+  member     LoungeMember       @relation(fields: [memberId], references: [id], onDelete: Cascade)
   documentId String?
-  document   InvestorDocument?  @relation(fields: [documentId], references: [id], onDelete: SetNull)
-  kind       InvestorAccessKind
+  document   LoungeDocument?  @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  kind       LoungeAccessKind
   ip         String?
   userAgent  String?
   createdAt  DateTime           @default(now())
 
-  @@index([investorId, createdAt])
+  @@index([memberId, createdAt])
   @@index([documentId, createdAt])
 }

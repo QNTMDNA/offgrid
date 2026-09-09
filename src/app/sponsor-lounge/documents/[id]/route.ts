@@ -1,8 +1,8 @@
 import { headers } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
-import { currentInvestor } from "@/lib/investors/session";
-import { readDocument } from "@/lib/investors/storage";
+import { currentMember } from "@/lib/lounge/session";
+import { readDocument } from "@/lib/lounge/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -10,22 +10,22 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const investor = await currentInvestor();
-  if (!investor) {
-    return NextResponse.redirect(new URL("/investors/login", request.url));
+  const member = await currentMember();
+  if (!member) {
+    return NextResponse.redirect(new URL("/sponsor-lounge/login", request.url));
   }
 
   const { id } = await params;
-  const document = await prisma.investorDocument.findFirst({
+  const document = await prisma.loungeDocument.findFirst({
     where: { id, published: true },
   });
   if (!document) return new NextResponse("Not found", { status: 404 });
 
   const download = request.nextUrl.searchParams.has("download");
   const list = await headers();
-  await prisma.investorAccess.create({
+  await prisma.loungeAccess.create({
     data: {
-      investorId: investor.investorId,
+      memberId: member.memberId,
       documentId: document.id,
       kind: download ? "DOWNLOAD" : "VIEW",
       ip: list.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
