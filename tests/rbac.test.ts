@@ -14,6 +14,15 @@ describe("rbac", () => {
     expect(can("OPERATIONS", "payouts:write")).toBe(true);
   });
 
+  it("reserves the Sponsor Lounge for admins", () => {
+    expect(can("ADMIN", "lounge:read")).toBe(true);
+    expect(can("ADMIN", "lounge:write")).toBe(true);
+    for (const role of ["SALES", "OPERATIONS", "MARKETING", "READ_ONLY"] as const) {
+      expect(can(role, "lounge:read")).toBe(false);
+      expect(can(role, "lounge:write")).toBe(false);
+    }
+  });
+
   it("reserves settings for admins", () => {
     expect(can("ADMIN", "settings:write")).toBe(true);
     expect(can("OPERATIONS", "settings:write")).toBe(false);

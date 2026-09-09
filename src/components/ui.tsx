@@ -56,6 +56,18 @@ export function ButtonLink({
   );
 }
 
+/** Plain anchor for links that must not be prefetched, such as the logged
+ * document routes: a prefetch would record an access nobody asked for. */
+export function AnchorButton({
+  variant = "solid",
+  className = "",
+  ...props
+}: ComponentProps<"a"> & { variant?: ButtonVariant }) {
+  return (
+    <a {...props} className={`${BUTTON_BASE} ${BUTTON_VARIANTS[variant]} ${className}`} />
+  );
+}
+
 export function Field({
   label,
   hint,

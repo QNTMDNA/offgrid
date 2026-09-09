@@ -763,3 +763,70 @@ model AdminUser {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 }
+
+// ---------------------------------------------------------------------------
+// Sponsor Lounge
+// ---------------------------------------------------------------------------
+
+/// Someone granted access to the private Sponsor Lounge material. Separate from
+/// AdminUser: no console access, and a passcode we issue rather than a password.
+model LoungeMember {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  organization String?
+  passcodeHash String
+  active       Boolean   @default(true)
+  invitedById  String?
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  accessLog LoungeAccess[]
+}
+
+/// A deck or document in the Sponsor Lounge. The file itself lives in object
+/// storage; only its key is stored here.
+model LoungeDocument {
+  id          String    @id @default(cuid())
+  title       String
+  summary     String?
+  period      String?
+  /// A deck is either an uploaded file or an embedded Canva design.
+  storageKey  String?   @unique
+  filename    String?
+  contentType String?
+  sizeBytes   Int?
+  embedUrl    String?
+  published   Boolean   @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  accessLog LoungeAccess[]
+
+  @@index([published, publishedAt])
+}
+
+enum LoungeAccessKind {
+  SIGN_IN
+  VIEW
+  DOWNLOAD
+}
+
+/// Audit trail: who signed in and which document they opened. Sponsor
+/// relations is expected to be able to answer both questions.
+model LoungeAccess {
+  id         String             @id @default(cuid())
+  memberId   String
+  member     LoungeMember       @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  documentId String?
+  document   LoungeDocument?  @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  kind       LoungeAccessKind
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime           @default(now())
+
+  @@index([memberId, createdAt])
+  @@index([documentId, createdAt])
+}

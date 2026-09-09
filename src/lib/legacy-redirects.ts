@@ -63,4 +63,7 @@ export const legacyRedirects: LegacyRedirect[] = [
   { source: "/account/:path*", destination: "/", statusCode: MOVED_PERMANENTLY },
   { source: "/apps/:path*", destination: "/", statusCode: MOVED_PERMANENTLY },
   { source: "/a/:path*", destination: "/", statusCode: MOVED_PERMANENTLY },
+  // The investor room was renamed to the sponsor lounge.
+  { source: "/investors", destination: "/sponsor-lounge", statusCode: MOVED_PERMANENTLY },
+  { source: "/investors/:path*", destination: "/sponsor-lounge/:path*", statusCode: MOVED_PERMANENTLY },
 ];

@@ -17,12 +17,18 @@ export const CAPABILITIES = [
   "payouts:write",
   "marketing:read",
   "marketing:write",
+  "lounge:read",
+  "lounge:write",
   "settings:write",
 ] as const;
 
 export type Capability = (typeof CAPABILITIES)[number];
 
-const READ_ONLY: Capability[] = CAPABILITIES.filter((c) => c.endsWith(":read"));
+/** Sponsor Lounge material is board-level, so it is granted explicitly rather than
+ * riding along with the general read capabilities. */
+const READ_ONLY: Capability[] = CAPABILITIES.filter(
+  (c) => c.endsWith(":read") && !c.startsWith("lounge:"),
+);
 
 const GRANTS: Record<AdminRole, readonly Capability[]> = {
   ADMIN: CAPABILITIES,
