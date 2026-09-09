@@ -2,9 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { currentSession } from "@/lib/auth/session";
+import { can, type Capability } from "@/lib/auth/rbac";
 import { logoutAction } from "@/app/actions/admin";
 
-const NAV = [
+const NAV: Array<{ href: string; label: string; capability?: Capability }> = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/crm", label: "CRM" },
   { href: "/admin/orders", label: "Orders" },
@@ -13,6 +14,7 @@ const NAV = [
   { href: "/admin/payouts", label: "Payouts" },
   { href: "/admin/marketing", label: "Marketing" },
   { href: "/admin/integrations", label: "Integrations" },
+  { href: "/admin/investors", label: "Investor room", capability: "investors:read" },
 ];
 
 export default async function ConsoleLayout({ children }: { children: ReactNode }) {
@@ -26,7 +28,9 @@ export default async function ConsoleLayout({ children }: { children: ReactNode 
           Off Grid
         </Link>
         <nav className="mt-10 flex flex-col gap-4">
-          {NAV.map((item) => (
+          {NAV.filter(
+            (item) => !item.capability || can(session.role, item.capability),
+          ).map((item) => (
             <Link
               key={item.href}
               href={item.href}
