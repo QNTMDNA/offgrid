@@ -1,14 +1,21 @@
+import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { availableUnits } from "@/lib/inventory";
 import { formatMoney } from "@/lib/money";
+import { currentSession } from "@/lib/auth/session";
+import { can } from "@/lib/auth/rbac";
 import { Cell, Empty, PageHeader, Table } from "@/components/admin/table";
 import { EditionStatusControl } from "@/components/admin/edition-status";
+import { ButtonLink } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
 const DATE = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeZone: "UTC" });
 
 export default async function CatalogPage() {
+  const session = await currentSession();
+  const writable = session ? can(session.role, "catalog:write") : false;
+
   const editions = await prisma.raceEdition.findMany({
     include: {
       race: true,
@@ -32,6 +39,16 @@ export default async function CatalogPage() {
       <PageHeader
         title="Catalog"
         subtitle="Race editions, hospitality packages and live inventory."
+        action={
+          writable ? (
+            <div className="flex gap-3">
+              <ButtonLink href="/admin/catalog/races" variant="outline">
+                Races
+              </ButtonLink>
+              <ButtonLink href="/admin/catalog/editions/new">New edition</ButtonLink>
+            </div>
+          ) : undefined
+        }
       />
 
       {editions.map((edition) => (
@@ -46,7 +63,17 @@ export default async function CatalogPage() {
                 {edition.race.city}, {edition.race.country}
               </p>
             </div>
-            <EditionStatusControl editionId={edition.id} status={edition.status} />
+            <div className="flex flex-wrap items-center gap-4">
+              {writable ? (
+                <Link
+                  href={`/admin/catalog/editions/${edition.id}`}
+                  className="eyebrow text-paper/50 hover:text-accent"
+                >
+                  Manage
+                </Link>
+              ) : null}
+              <EditionStatusControl editionId={edition.id} status={edition.status} />
+            </div>
           </div>
 
           <div className="mt-6">
@@ -63,6 +90,9 @@ export default async function CatalogPage() {
                     {pkg.inviteOnly ? (
                       <span className="ml-2 text-xs text-accent">invite only</span>
                     ) : null}
+                    {pkg.active ? null : (
+                      <span className="ml-2 text-xs text-paper/40">archived</span>
+                    )}
                   </Cell>
                   <Cell muted>{pkg.kind.replace("_", " ")}</Cell>
                   <Cell>{formatMoney(pkg.priceMinor, edition.currency)}</Cell>

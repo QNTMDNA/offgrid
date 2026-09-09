@@ -56,7 +56,7 @@ export default async function RaceEditionPage({ params }: Params) {
   return (
     <>
       <Hero
-        image={raceImage(edition.slug)}
+        image={raceImage(edition.slug, 0, edition.race.heroImage)}
         priority
         height="short"
         eyebrow={`${edition.race.city}, ${edition.race.country} — ${edition.season}`}
