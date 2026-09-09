@@ -10,6 +10,7 @@ type RaceSeed = {
   country: string;
   countryCode: string;
   circuit: string;
+  season: number;
   start: string;
   end: string;
   currency: string;
@@ -17,6 +18,7 @@ type RaceSeed = {
   headline: string;
 };
 
+/** One entry per edition — a race may appear more than once across seasons. */
 const RACES: RaceSeed[] = [
   {
     slug: "miami",
@@ -25,6 +27,7 @@ const RACES: RaceSeed[] = [
     country: "United States",
     countryCode: "US",
     circuit: "Miami International Autodrome",
+    season: 2026,
     start: "2026-05-01",
     end: "2026-05-03",
     currency: "USD",
@@ -38,6 +41,7 @@ const RACES: RaceSeed[] = [
     country: "Monaco",
     countryCode: "MC",
     circuit: "Circuit de Monaco",
+    season: 2026,
     start: "2026-05-22",
     end: "2026-05-24",
     currency: "EUR",
@@ -51,6 +55,7 @@ const RACES: RaceSeed[] = [
     country: "Italy",
     countryCode: "IT",
     circuit: "Autodromo Nazionale Monza",
+    season: 2026,
     start: "2026-09-04",
     end: "2026-09-06",
     currency: "EUR",
@@ -64,6 +69,7 @@ const RACES: RaceSeed[] = [
     country: "United States",
     countryCode: "US",
     circuit: "Circuit of the Americas",
+    season: 2026,
     start: "2026-10-23",
     end: "2026-10-25",
     currency: "USD",
@@ -77,6 +83,7 @@ const RACES: RaceSeed[] = [
     country: "United States",
     countryCode: "US",
     circuit: "Las Vegas Strip Circuit",
+    season: 2026,
     start: "2026-11-19",
     end: "2026-11-21",
     currency: "USD",
@@ -90,11 +97,54 @@ const RACES: RaceSeed[] = [
     country: "United Arab Emirates",
     countryCode: "AE",
     circuit: "Yas Marina Circuit",
+    season: 2026,
     start: "2026-12-04",
     end: "2026-12-06",
     currency: "AED",
     status: "ANNOUNCED",
     headline: "The season closes on the marina, at dusk.",
+  },
+  {
+    slug: "madrid",
+    name: "Madrid Grand Prix",
+    city: "Madrid",
+    country: "Spain",
+    countryCode: "ES",
+    circuit: "Madring",
+    season: 2026,
+    start: "2026-09-11",
+    end: "2026-09-13",
+    currency: "EUR",
+    status: "ANNOUNCED",
+    headline: "A new circuit in the city, taken on Off Grid terms.",
+  },
+  {
+    slug: "mexico-city",
+    name: "Mexico City Grand Prix",
+    city: "Mexico City",
+    country: "Mexico",
+    countryCode: "MX",
+    circuit: "Autódromo Hermanos Rodríguez",
+    season: 2026,
+    start: "2026-10-30",
+    end: "2026-11-01",
+    currency: "MXN",
+    status: "ANNOUNCED",
+    headline: "The loudest grandstand in the sport, and a quiet room behind it.",
+  },
+  {
+    slug: "miami",
+    name: "Miami Grand Prix",
+    city: "Miami",
+    country: "United States",
+    countryCode: "US",
+    circuit: "Miami International Autodrome",
+    season: 2027,
+    start: "2027-05-07",
+    end: "2027-05-09",
+    currency: "USD",
+    status: "ANNOUNCED",
+    headline: "Miami returns. Dates provisional until the calendar is confirmed.",
   },
 ];
 
@@ -177,11 +227,11 @@ async function main() {
     });
 
     const edition = await prisma.raceEdition.upsert({
-      where: { raceId_season: { raceId: created.id, season: 2026 } },
+      where: { raceId_season: { raceId: created.id, season: race.season } },
       create: {
         raceId: created.id,
-        season: 2026,
-        slug: `${race.slug}-2026`,
+        season: race.season,
+        slug: `${race.slug}-${race.season}`,
         status: race.status,
         startsAt: new Date(`${race.start}T00:00:00Z`),
         endsAt: new Date(`${race.end}T23:59:59Z`),
@@ -194,7 +244,7 @@ async function main() {
     });
 
     for (const [index, pkg] of PACKAGES.entries()) {
-      const sku = `${race.slug.toUpperCase()}-26-${pkg.suffix}`;
+      const sku = `${race.slug.toUpperCase()}-${race.season % 100}-${pkg.suffix}`;
       await prisma.package.upsert({
         where: { sku },
         create: {
@@ -273,7 +323,7 @@ async function main() {
     update: {},
   });
 
-  console.log(`Seeded ${RACES.length} races. Admin: ${email}`);
+  console.log(`Seeded ${RACES.length} race editions. Admin: ${email}`);
 }
 
 main()

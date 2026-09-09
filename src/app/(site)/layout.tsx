@@ -8,6 +8,13 @@ const NAV = [
   { href: "/partners", label: "Partners" },
   { href: "/request-access", label: "Request Access" },
   { href: "/sponsor-inquiry", label: "Sponsor Inquiries" },
+  { href: "/contact", label: "Contact" },
+];
+
+const LEGAL = [
+  { href: "/legal/privacy", label: "Privacy" },
+  { href: "/legal/terms", label: "Terms" },
+  { href: "/legal/data-sharing", label: "Data sharing opt-out" },
 ];
 
 export default function SiteLayout({ children }: { children: ReactNode }) {
@@ -56,6 +63,17 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
                   key={item.href}
                   href={item.href}
                   className="eyebrow text-paper/50 hover:text-paper"
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-4 md:justify-end">
+              {LEGAL.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="text-xs text-paper/40 hover:text-paper"
                 >
                   {item.label}
                 </Link>
