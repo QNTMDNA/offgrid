@@ -9,6 +9,7 @@ import {
 } from "@/app/actions/lounge";
 import { InviteMember } from "@/components/admin/invite-member";
 import { UploadDeck } from "@/components/admin/upload-deck";
+import { AddCanvaDeck } from "@/components/admin/add-canva-deck";
 import { Cell, Empty, PageHeader, Table } from "@/components/admin/table";
 import { Button } from "@/components/ui";
 
@@ -49,6 +50,8 @@ export default async function SponsorLoungeAdminPage() {
 
       <UploadDeck />
 
+      <AddCanvaDeck />
+
       <section className="space-y-4">
         <h2 className="eyebrow text-paper/40">Documents</h2>
         <Table columns={["Document", "Period", "Size", "Opens", "Status", ""]}>
@@ -57,11 +60,15 @@ export default async function SponsorLoungeAdminPage() {
               <Cell>
                 {document.title}
                 <span className="ml-2 font-mono text-xs text-paper/40">
-                  {document.filename}
+                  {document.filename ?? "canva"}
                 </span>
               </Cell>
               <Cell muted>{document.period ?? "—"}</Cell>
-              <Cell muted>{Math.max(1, Math.round(document.sizeBytes / 1024))} KB</Cell>
+              <Cell muted>
+                {document.sizeBytes
+                  ? `${Math.max(1, Math.round(document.sizeBytes / 1024))} KB`
+                  : "embed"}
+              </Cell>
               <Cell muted>{document._count.accessLog}</Cell>
               <Cell muted>
                 <form action={setDocumentPublishedAction}>

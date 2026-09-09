@@ -60,23 +60,33 @@ export default async function MemberRoomPage() {
                 {[
                   document.period,
                   document.publishedAt ? DATE.format(document.publishedAt) : null,
-                  fileSize(document.sizeBytes),
+                  document.sizeBytes ? fileSize(document.sizeBytes) : "Canva deck",
                 ]
                   .filter(Boolean)
                   .join(" · ")}
               </p>
             </div>
             <div className="flex gap-3">
-              <ButtonLink
-                href={`/sponsor-lounge/documents/${document.id}`}
-                variant="outline"
-                target="_blank"
-              >
-                View
-              </ButtonLink>
-              <ButtonLink href={`/sponsor-lounge/documents/${document.id}?download=1`}>
-                Download
-              </ButtonLink>
+              {document.embedUrl ? (
+                <ButtonLink href={`/sponsor-lounge/decks/${document.id}`}>
+                  View
+                </ButtonLink>
+              ) : (
+                <>
+                  <ButtonLink
+                    href={`/sponsor-lounge/documents/${document.id}`}
+                    variant="outline"
+                    target="_blank"
+                  >
+                    View
+                  </ButtonLink>
+                  <ButtonLink
+                    href={`/sponsor-lounge/documents/${document.id}?download=1`}
+                  >
+                    Download
+                  </ButtonLink>
+                </>
+              )}
             </div>
           </article>
         ))}

@@ -13,6 +13,7 @@ import {
   startLoungeSession,
 } from "@/lib/lounge/session";
 import { generatePasscode, normalisePasscode } from "@/lib/lounge/passcode";
+import { InvalidCanvaUrlError, canvaEmbedUrl } from "@/lib/lounge/canva";
 import {
   UnsupportedDocumentError,
   deleteDocument,
@@ -191,6 +192,49 @@ export async function uploadLoungeDocumentAction(
   return { status: "ok", message: `${parsed.data.title} uploaded.` };
 }
 
+export async function addCanvaDeckAction(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  await guard("lounge:write");
+  const parsed = documentSchema
+    .extend({ url: z.string().min(1) })
+    .safeParse({
+      title: formData.get("title"),
+      summary: formData.get("summary"),
+      period: formData.get("period"),
+      publish: formData.get("publish"),
+      url: formData.get("url"),
+    });
+  if (!parsed.success) return { status: "error", message: "Invalid input" };
+
+  let embedUrl: string;
+  try {
+    embedUrl = canvaEmbedUrl(parsed.data.url);
+  } catch (error) {
+    if (error instanceof InvalidCanvaUrlError) {
+      return { status: "error", message: error.message };
+    }
+    throw error;
+  }
+
+  const published = parsed.data.publish === "on";
+  await prisma.loungeDocument.create({
+    data: {
+      title: parsed.data.title,
+      summary: parsed.data.summary || null,
+      period: parsed.data.period || null,
+      embedUrl,
+      published,
+      publishedAt: published ? new Date() : null,
+    },
+  });
+
+  revalidatePath("/admin/sponsor-lounge");
+  revalidatePath("/sponsor-lounge");
+  return { status: "ok", message: `${parsed.data.title} added.` };
+}
+
 export async function setDocumentPublishedAction(formData: FormData): Promise<void> {
   await guard("lounge:write");
   const id = String(formData.get("documentId") ?? "");
@@ -207,7 +251,7 @@ export async function deleteLoungeDocumentAction(formData: FormData): Promise<vo
   await guard("lounge:write");
   const id = String(formData.get("documentId") ?? "");
   const document = await prisma.loungeDocument.delete({ where: { id } });
-  await deleteDocument(document.storageKey);
+  if (document.storageKey) await deleteDocument(document.storageKey);
   revalidatePath("/admin/sponsor-lounge");
   revalidatePath("/sponsor-lounge");
 }

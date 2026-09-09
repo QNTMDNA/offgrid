@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { generatePasscode, normalisePasscode } from "@/lib/lounge/passcode";
 import { safeFilename } from "@/lib/lounge/storage";
+import { InvalidCanvaUrlError, canvaEmbedUrl } from "@/lib/lounge/canva";
 import { resetEnvCache } from "@/lib/env";
 import {
   signLoungeSession,
@@ -66,5 +67,33 @@ describe("document storage", () => {
     expect(safeFilename("../../etc/passwd")).toBe("passwd");
     expect(safeFilename("Series A / deck v2.pdf")).toBe("deck-v2.pdf");
     expect(safeFilename("")).toBe("document");
+  });
+});
+
+describe("canvaEmbedUrl", () => {
+  const design = "https://www.canva.com/design/DAGabc123/AbCdEf/view";
+
+  it("normalises share, watch and edit links to the embeddable viewer", () => {
+    const expected = "https://www.canva.com/design/DAGabc123/AbCdEf/view?embed";
+    expect(canvaEmbedUrl(`${design}?utm_campaign=designshare`)).toBe(expected);
+    expect(canvaEmbedUrl("https://www.canva.com/design/DAGabc123/AbCdEf/edit")).toBe(
+      expected,
+    );
+    expect(canvaEmbedUrl(" https://canva.com/design/DAGabc123/watch ")).toBe(
+      "https://www.canva.com/design/DAGabc123/view?embed",
+    );
+  });
+
+  it("rejects anything that is not a Canva design", () => {
+    expect(() => canvaEmbedUrl("https://example.com/design/DAGabc123/view")).toThrow(
+      InvalidCanvaUrlError,
+    );
+    expect(() => canvaEmbedUrl("http://www.canva.com/design/DAGabc123/view")).toThrow(
+      InvalidCanvaUrlError,
+    );
+    expect(() => canvaEmbedUrl("https://www.canva.com/folder/DAGabc123")).toThrow(
+      InvalidCanvaUrlError,
+    );
+    expect(() => canvaEmbedUrl("not a url")).toThrow(InvalidCanvaUrlError);
   });
 });

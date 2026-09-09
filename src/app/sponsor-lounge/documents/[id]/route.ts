@@ -19,7 +19,8 @@ export async function GET(
   const document = await prisma.loungeDocument.findFirst({
     where: { id, published: true },
   });
-  if (!document) return new NextResponse("Not found", { status: 404 });
+  // Canva decks live at /sponsor-lounge/decks/[id]; nothing is stored for them.
+  if (!document?.storageKey) return new NextResponse("Not found", { status: 404 });
 
   const download = request.nextUrl.searchParams.has("download");
   const list = await headers();
@@ -36,9 +37,9 @@ export async function GET(
   const body = await readDocument(document.storageKey);
   return new NextResponse(new Uint8Array(body), {
     headers: {
-      "Content-Type": document.contentType,
+      "Content-Type": document.contentType ?? "application/octet-stream",
       "Content-Length": String(body.byteLength),
-      "Content-Disposition": `${download ? "attachment" : "inline"}; filename="${document.filename}"`,
+      "Content-Disposition": `${download ? "attachment" : "inline"}; filename="${document.filename ?? "deck"}"`,
       // Private material must not sit in a shared cache.
       "Cache-Control": "private, no-store",
     },
