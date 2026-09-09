@@ -29,8 +29,15 @@ export const SPONSOR_LOGOS = [2, 3, 4, 6, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19,
   (n) => `/brand/sponsors/sponsor-${n}.png`,
 );
 
-export function raceImage(slug: string, fallbackIndex = 0): string {
+/** Artwork uploaded in the admin console wins over the bundled photography. */
+export function raceImage(
+  slug: string,
+  fallbackIndex = 0,
+  uploaded?: string | null,
+): string {
   return (
-    RACE_IMAGES[slug] ?? EDITORIAL_IMAGES[fallbackIndex % EDITORIAL_IMAGES.length]
+    uploaded ||
+    RACE_IMAGES[slug] ||
+    EDITORIAL_IMAGES[fallbackIndex % EDITORIAL_IMAGES.length]
   );
 }

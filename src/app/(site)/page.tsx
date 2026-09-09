@@ -108,7 +108,7 @@ export default async function HomePage() {
               className="group relative block aspect-4/5 overflow-hidden"
             >
               <Image
-                src={raceImage(edition.slug, index)}
+                src={raceImage(edition.slug, index, edition.race.heroImage)}
                 alt=""
                 fill
                 sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
