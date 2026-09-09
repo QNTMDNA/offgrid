@@ -72,7 +72,13 @@ export default async function CatalogPage() {
                   Manage
                 </Link>
               ) : null}
-              <EditionStatusControl editionId={edition.id} status={edition.status} />
+              {writable ? (
+                <EditionStatusControl editionId={edition.id} status={edition.status} />
+              ) : (
+                <span className="eyebrow text-paper/50">
+                  {edition.status.replace("_", " ")}
+                </span>
+              )}
             </div>
           </div>
 

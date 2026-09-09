@@ -2,6 +2,13 @@ import type { EditionStatus, PackageKind, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 
 export class SlugTakenError extends Error {}
+
+export class InvalidDateRangeError extends Error {
+  constructor() {
+    super("The edition must end after it starts");
+    this.name = "InvalidDateRangeError";
+  }
+}
 export class InventoryBelowCommittedError extends Error {
   constructor(readonly committed: number) {
     super(`Inventory cannot drop below the ${committed} unit(s) already committed`);
@@ -121,8 +128,8 @@ export async function createEdition(input: EditionInput) {
   if (await prisma.raceEdition.findUnique({ where: { slug }, select: { id: true } })) {
     throw new SlugTakenError(`${race.name} ${input.season} already exists`);
   }
-  if (input.endsAt < input.startsAt) {
-    throw new Error("The edition cannot end before it starts");
+  if (input.endsAt <= input.startsAt) {
+    throw new InvalidDateRangeError();
   }
 
   return prisma.raceEdition.create({
@@ -145,8 +152,8 @@ export async function updateEdition(
   editionId: string,
   input: Omit<EditionInput, "raceId" | "season">,
 ) {
-  if (input.endsAt < input.startsAt) {
-    throw new Error("The edition cannot end before it starts");
+  if (input.endsAt <= input.startsAt) {
+    throw new InvalidDateRangeError();
   }
   return prisma.raceEdition.update({
     where: { id: editionId },

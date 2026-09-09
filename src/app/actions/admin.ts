@@ -13,13 +13,14 @@ import { queueCampaign } from "@/lib/marketing/campaigns";
 import { toMinor } from "@/lib/money";
 import type { FormState } from "@/app/actions/marketing";
 
-async function guard(capability: Capability) {
+/** Returns a form error for callers without the capability so a stale or
+ * hand-crafted submission is refused rather than crashing the console. */
+async function guard(capability: Capability): Promise<FormState | null> {
   const session = await currentSession();
   if (!session) redirect("/admin/login");
-  if (!can(session.role, capability)) {
-    throw new Error("You do not have permission to perform this action");
-  }
-  return session;
+  return can(session.role, capability)
+    ? null
+    : { status: "error", message: "You do not have permission to perform this action" };
 }
 
 const loginSchema = z.object({
@@ -71,7 +72,8 @@ export async function qualifyLeadAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  await guard("crm:write");
+  const denied = await guard("crm:write");
+  if (denied) return denied;
   const parsed = qualifySchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { status: "error", message: "Invalid input" };
 
@@ -97,7 +99,8 @@ export async function createPayoutAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  await guard("payouts:write");
+  const denied = await guard("payouts:write");
+  if (denied) return denied;
   const parsed = payoutSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { status: "error", message: "Invalid input" };
 
@@ -116,7 +119,8 @@ export async function queueCampaignAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  await guard("marketing:write");
+  const denied = await guard("marketing:write");
+  if (denied) return denied;
   const campaignId = String(formData.get("campaignId") ?? "");
   if (!campaignId) return { status: "error", message: "Invalid campaign" };
 
@@ -142,7 +146,8 @@ export async function setEditionStatusAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  await guard("catalog:write");
+  const denied = await guard("catalog:write");
+  if (denied) return denied;
   const parsed = editionStatusSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { status: "error", message: "Invalid input" };
 
