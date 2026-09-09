@@ -7,6 +7,19 @@ export const CART_COOKIE = "ogr_cart";
 const CART_TTL_MINUTES = 60 * 24;
 
 export type CartLine = CartItem & { package: Package };
+
+/**
+ * An order is placed against a single race edition, so a cart may only hold one
+ * edition's packages. Raised at add-to-cart time rather than at checkout, where
+ * the guest would have nothing left to do but abandon the cart.
+ */
+export class CartEditionConflictError extends Error {
+  constructor(readonly heldEdition: string) {
+    super(`Cart already holds places for ${heldEdition}`);
+    this.name = "CartEditionConflictError";
+  }
+}
+
 export type CartView = Cart & {
   items: CartLine[];
   subtotalMinor: number;
@@ -63,14 +76,28 @@ export async function setCartLine(
 
   const pkg = await prisma.package.findUnique({
     where: { id: packageId },
-    include: { edition: true },
+    include: { edition: { include: { race: true } } },
   });
   if (!pkg || !pkg.active) throw new Error("Package is not available");
-  if (pkg.edition.currency !== cart.currency) {
-    await prisma.cart.update({
-      where: { id: cart.id },
-      data: { currency: pkg.edition.currency },
+
+  if (units > 0) {
+    const other = await prisma.cartItem.findFirst({
+      where: { cartId: cart.id, package: { editionId: { not: pkg.editionId } } },
+      include: { package: { include: { edition: { include: { race: true } } } } },
     });
+    if (other) {
+      throw new CartEditionConflictError(
+        `${other.package.edition.race.name} ${other.package.edition.season}`,
+      );
+    }
+    // Safe now that the cart is known to hold this edition only: line prices and
+    // the subtotal are all denominated in the cart currency.
+    if (pkg.edition.currency !== cart.currency) {
+      await prisma.cart.update({
+        where: { id: cart.id },
+        data: { currency: pkg.edition.currency },
+      });
+    }
   }
 
   if (units <= 0) {

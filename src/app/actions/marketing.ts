@@ -11,7 +11,8 @@ export type FormState = { status: "idle" | "ok" | "error"; message?: string };
 
 const subscribeSchema = z.object({
   email: z.string().email("Enter a valid email address"),
-  tags: z.string().optional(),
+  // Forms without a tags input submit nothing, so FormData.get returns null.
+  tags: z.string().nullish(),
 });
 
 export async function subscribeAction(

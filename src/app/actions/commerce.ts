@@ -4,7 +4,12 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { CART_COOKIE, getOrCreateCart, setCartLine } from "@/lib/commerce/cart";
+import {
+  CART_COOKIE,
+  CartEditionConflictError,
+  getOrCreateCart,
+  setCartLine,
+} from "@/lib/commerce/cart";
 import { checkout } from "@/lib/commerce/orders";
 import { parseGuestList } from "@/lib/commerce/guest-list";
 import { InsufficientInventoryError } from "@/lib/inventory";
@@ -43,6 +48,12 @@ export async function setCartLineAction(
       parsed.data.units,
     );
   } catch (error) {
+    if (error instanceof CartEditionConflictError) {
+      return {
+        status: "error",
+        message: `Your reservation holds places for ${error.heldEdition}. Remove them before reserving another race.`,
+      };
+    }
     if (error instanceof InsufficientInventoryError) {
       return {
         status: "error",

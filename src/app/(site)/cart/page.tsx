@@ -5,6 +5,7 @@ import { CART_COOKIE, getCart } from "@/lib/commerce/cart";
 import { formatMoney } from "@/lib/money";
 import { prisma } from "@/lib/db";
 import { AddToCart } from "@/components/site/add-to-cart";
+import { RemoveFromCart } from "@/components/site/remove-from-cart";
 import { ButtonLink, Eyebrow, Section } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -63,8 +64,9 @@ export default async function CartPage() {
               <p className="text-sm text-paper/60">
                 {item.units} × {formatMoney(item.priceMinor, cart.currency)}
               </p>
-              <div className="md:justify-self-end">
+              <div className="flex items-start gap-3 md:justify-self-end">
                 <AddToCart packageId={item.packageId} maxUnits={item.units + 20} />
+                <RemoveFromCart packageId={item.packageId} />
               </div>
             </li>
           );
