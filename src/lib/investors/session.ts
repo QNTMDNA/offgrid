@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
 import { env } from "@/lib/env";
+import { prisma } from "@/lib/db";
 
 export const INVESTOR_COOKIE = "ogr_investor";
 const MAX_AGE_SECONDS = 60 * 60 * 8;
@@ -64,8 +65,19 @@ export async function endInvestorSession(): Promise<void> {
   jar.delete(INVESTOR_COOKIE);
 }
 
+/**
+ * Tokens live for hours, so the account is re-checked on every gated request:
+ * revoking access has to take effect immediately, not at expiry.
+ */
 export async function currentInvestor(): Promise<InvestorSession | null> {
   const jar = await cookies();
   const token = jar.get(INVESTOR_COOKIE)?.value;
-  return token ? verifyInvestorSession(token) : null;
+  const session = token ? await verifyInvestorSession(token) : null;
+  if (!session) return null;
+
+  const investor = await prisma.investorUser.findUnique({
+    where: { id: session.investorId },
+    select: { active: true },
+  });
+  return investor?.active ? session : null;
 }
