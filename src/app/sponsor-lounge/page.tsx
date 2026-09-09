@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { currentMember } from "@/lib/lounge/session";
 import { loungeSignOutAction } from "@/app/actions/lounge";
-import { Button, ButtonLink } from "@/components/ui";
+import { AnchorButton, Button, ButtonLink } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -73,18 +73,18 @@ export default async function MemberRoomPage() {
                 </ButtonLink>
               ) : (
                 <>
-                  <ButtonLink
+                  <AnchorButton
                     href={`/sponsor-lounge/documents/${document.id}`}
                     variant="outline"
                     target="_blank"
                   >
                     View
-                  </ButtonLink>
-                  <ButtonLink
+                  </AnchorButton>
+                  <AnchorButton
                     href={`/sponsor-lounge/documents/${document.id}?download=1`}
                   >
                     Download
-                  </ButtonLink>
+                  </AnchorButton>
                 </>
               )}
             </div>
