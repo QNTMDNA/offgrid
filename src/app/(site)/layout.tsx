@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Attribution } from "@/components/site/attribution";
@@ -21,23 +22,30 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
       <Attribution />
-      <header className="sticky top-0 z-50 border-b border-paper/10 bg-ink/90 backdrop-blur">
-        <nav className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-5">
-          <Link href="/" className="text-sm uppercase tracking-[0.4em]">
-            Off Grid
+      <header className="sticky top-0 z-50 border-b border-paper/10 bg-ink/85 backdrop-blur">
+        <nav className="mx-auto flex w-full max-w-7xl items-center justify-between gap-8 px-6 py-5">
+          <Link href="/" aria-label="Off Grid">
+            <Image
+              src="/brand/logo-white.svg"
+              alt="Off Grid"
+              width={190}
+              height={44}
+              priority
+              className="h-9 w-auto"
+            />
           </Link>
           <div className="hidden gap-8 md:flex">
             {NAV.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="eyebrow text-paper/60 transition hover:text-paper"
+                className="eyebrow text-paper/70 transition hover:text-accent"
               >
                 {item.label}
               </Link>
             ))}
           </div>
-          <Link href="/cart" className="eyebrow text-paper/60 hover:text-paper">
+          <Link href="/cart" className="eyebrow text-paper/70 transition hover:text-accent">
             Cart
           </Link>
         </nav>
@@ -46,10 +54,17 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
       <main className="flex-1">{children}</main>
 
       <footer className="border-t border-paper/10">
-        <div className="mx-auto grid w-full max-w-6xl gap-12 px-6 py-16 md:grid-cols-2">
+        <div className="mx-auto grid w-full max-w-7xl gap-12 px-6 py-16 md:grid-cols-2">
           <div>
-            <p className="eyebrow text-paper/50">Secure your access</p>
-            <h2 className="mt-4 max-w-sm text-2xl font-light">
+            <Image
+              src="/brand/logo-white.svg"
+              alt="Off Grid"
+              width={190}
+              height={44}
+              className="h-9 w-auto"
+            />
+            <p className="eyebrow mt-10 text-paper/50">Secure your access</p>
+            <h2 className="display mt-4 max-w-sm text-3xl">
               Be first to receive allocations, private events, and special offers.
             </h2>
             <div className="mt-6 max-w-sm">

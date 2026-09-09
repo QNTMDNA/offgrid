@@ -1,7 +1,9 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
-import { Eyebrow, Section } from "@/components/ui";
+import { raceImage } from "@/lib/brand";
+import { Section } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -28,39 +30,41 @@ export default async function RacesPage() {
 
   return (
     <Section>
-      <Eyebrow>Race calendar</Eyebrow>
-      <h1 className="mt-6 text-4xl font-light">Where we will be</h1>
+      <h1 className="display text-5xl md:text-6xl">2026 — 2027 race calendar</h1>
 
       {seasons.map((season) => (
         <div key={season} className="mt-16">
           <p className="eyebrow text-accent">{season} season</p>
-          <ul className="mt-6 divide-y divide-paper/10 border-y border-paper/10">
+          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {editions
               .filter((e) => e.season === season)
-              .map((edition) => (
-                <li key={edition.id}>
-                  <Link
-                    href={`/races/${edition.slug}`}
-                    className="flex flex-wrap items-baseline justify-between gap-4 py-6 transition hover:text-accent"
-                  >
-                    <span className="text-2xl font-light">{edition.race.name}</span>
-                    <span className="text-sm text-paper/50">
-                      {edition.race.city}, {edition.race.country}
-                    </span>
-                    <span className="text-sm text-paper/50">
-                      {DATE_FORMAT.format(edition.startsAt)}
-                    </span>
-                    <span className="eyebrow text-paper/40">
-                      {edition.packages.length} package
-                      {edition.packages.length === 1 ? "" : "s"}
-                    </span>
-                    <span className="eyebrow text-accent">
-                      {edition.status.replace("_", " ")}
-                    </span>
-                  </Link>
-                </li>
+              .map((edition, index) => (
+                <Link
+                  key={edition.id}
+                  href={`/races/${edition.slug}`}
+                  className="group relative block aspect-4/5 overflow-hidden"
+                >
+                  <Image
+                    src={raceImage(edition.slug, index)}
+                    alt=""
+                    fill
+                    sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                    className="object-cover transition duration-700 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/25 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-6">
+                    <p className="display text-3xl">{edition.race.city}</p>
+                    <p className="mt-2 text-sm text-paper/60">
+                      {DATE_FORMAT.format(edition.startsAt)} · {edition.race.country}
+                    </p>
+                    <p className="eyebrow mt-3 text-accent">
+                      {edition.status.replace("_", " ")} · {edition.packages.length}{" "}
+                      package{edition.packages.length === 1 ? "" : "s"}
+                    </p>
+                  </div>
+                </Link>
               ))}
-          </ul>
+          </div>
         </div>
       ))}
 

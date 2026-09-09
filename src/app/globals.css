@@ -1,10 +1,11 @@
 @import "tailwindcss";
 
 :root {
-  --ogr-ink: #0a0a0a;
-  --ogr-paper: #f5f4f1;
-  --ogr-line: #2a2a2a;
-  --ogr-accent: #c8a45c;
+  --ogr-ink: #000000;
+  --ogr-paper: #ffffff;
+  --ogr-line: #1c1c1c;
+  --ogr-accent: #cd9735;
+  --ogr-navy: #0c203c;
 }
 
 @theme inline {
@@ -12,14 +13,22 @@
   --color-paper: var(--ogr-paper);
   --color-line: var(--ogr-line);
   --color-accent: var(--ogr-accent);
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --color-navy: var(--ogr-navy);
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, monospace;
 }
 
 html,
 body {
   background: var(--ogr-ink);
   color: var(--ogr-paper);
+}
+
+.display {
+  font-family: var(--font-display), sans-serif;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  line-height: 0.92;
 }
 
 .eyebrow {
@@ -29,5 +38,29 @@ body {
 }
 
 .rule {
-  border-top: 1px solid rgba(245, 244, 241, 0.14);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.bleed {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  animation: marquee 45s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+  }
 }

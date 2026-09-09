@@ -13,7 +13,7 @@ export default function SponsorInquiryPage() {
       <div className="grid gap-16 md:grid-cols-[1fr_1.4fr]">
         <div>
           <Eyebrow>Partnerships</Eyebrow>
-          <h1 className="mt-6 text-4xl font-light">Sponsor inquiries</h1>
+          <h1 className="display mt-6 text-4xl">Sponsor inquiries</h1>
           <p className="mt-6 text-sm text-paper/60">
             Our partnerships are integrated into the atmosphere of the weekend rather than
             layered on top of it. Tell us about your brand and we will build a programme

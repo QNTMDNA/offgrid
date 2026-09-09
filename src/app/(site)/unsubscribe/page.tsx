@@ -16,7 +16,7 @@ export default async function UnsubscribePage({
   return (
     <Section>
       <Eyebrow>Email preferences</Eyebrow>
-      <h1 className="mt-6 text-4xl font-light">Unsubscribe</h1>
+      <h1 className="display mt-6 text-4xl">Unsubscribe</h1>
       <p className="mt-6 max-w-xl text-paper/60">
         Confirm the address you would like removed from the Off Grid access list.
         Transactional messages about existing reservations will still be sent.

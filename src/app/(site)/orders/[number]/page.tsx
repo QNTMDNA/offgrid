@@ -42,7 +42,7 @@ export default async function OrderPage({ params }: Params) {
   return (
     <Section>
       <Eyebrow>Reservation {order.number}</Eyebrow>
-      <h1 className="mt-6 text-4xl font-light">
+      <h1 className="display mt-6 text-4xl">
         {order.status === "PAID" ? "Confirmed" : "Awaiting payment"}
       </h1>
       <p className="mt-6 max-w-2xl text-paper/60">
