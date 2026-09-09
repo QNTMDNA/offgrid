@@ -42,7 +42,7 @@ export default function ContactPage() {
   return (
     <Section>
       <Eyebrow>Contact</Eyebrow>
-      <h1 className="mt-6 text-4xl font-light">Talk to the team</h1>
+      <h1 className="display mt-6 text-4xl">Talk to the team</h1>
       <p className="mt-6 max-w-2xl text-paper/60">
         We answer every message. For the fastest response on a specific weekend, use the
         access request form — it reaches the team handling that round.

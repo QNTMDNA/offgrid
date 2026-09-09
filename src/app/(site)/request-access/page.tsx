@@ -13,7 +13,7 @@ export default function RequestAccessPage() {
       <div className="grid gap-16 md:grid-cols-[1fr_1.4fr]">
         <div>
           <Eyebrow>By invite only</Eyebrow>
-          <h1 className="mt-6 text-4xl font-light">Request access</h1>
+          <h1 className="display mt-6 text-4xl">Request access</h1>
           <p className="mt-6 text-sm text-paper/60">
             Every round is intentionally limited. Share a few details and our team will
             respond with availability, pricing and the programme for your preferred races.

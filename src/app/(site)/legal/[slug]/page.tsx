@@ -21,7 +21,7 @@ export default async function LegalPage({ params }: Params) {
   return (
     <Section>
       <Eyebrow>Legal</Eyebrow>
-      <h1 className="mt-6 text-4xl font-light">{doc.title}</h1>
+      <h1 className="display mt-6 text-4xl">{doc.title}</h1>
       <p className="mt-6 max-w-2xl text-paper/60">{doc.summary}</p>
 
       <div className="mt-16 max-w-2xl space-y-12">

@@ -13,7 +13,7 @@ export function Section({
   className?: string;
 }) {
   return (
-    <section className={`mx-auto w-full max-w-6xl px-6 py-20 ${className}`}>
+    <section className={`mx-auto w-full max-w-7xl px-6 py-20 ${className}`}>
       {children}
     </section>
   );
@@ -23,7 +23,7 @@ const BUTTON_BASE =
   "inline-flex items-center justify-center gap-2 px-6 py-3 text-xs uppercase tracking-[0.2em] transition disabled:cursor-not-allowed disabled:opacity-50";
 
 const BUTTON_VARIANTS = {
-  solid: "bg-paper text-ink hover:bg-accent",
+  solid: "bg-accent text-ink hover:bg-paper",
   outline: "border border-paper/30 text-paper hover:border-accent hover:text-accent",
   ghost: "text-paper/70 hover:text-paper",
 } as const;

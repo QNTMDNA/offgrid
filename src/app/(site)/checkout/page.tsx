@@ -20,7 +20,7 @@ export default async function CheckoutPage() {
       <div className="grid gap-16 md:grid-cols-[1.4fr_1fr]">
         <div>
           <Eyebrow>Checkout</Eyebrow>
-          <h1 className="mt-6 text-4xl font-light">Your details</h1>
+          <h1 className="display mt-6 text-4xl">Your details</h1>
           <p className="mt-6 max-w-lg text-sm text-paper/60">
             Reservations are confirmed on receipt of payment. We issue an invoice with
             bank details immediately; your allocation is held until the due date.

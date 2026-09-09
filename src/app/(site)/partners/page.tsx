@@ -35,7 +35,7 @@ export default async function PartnersPage() {
     <>
       <Section>
         <Eyebrow>Our partners</Eyebrow>
-        <h1 className="mt-6 max-w-3xl text-4xl font-light md:text-5xl">
+        <h1 className="display mt-6 max-w-3xl text-4xl md:text-5xl">
           Immersive experiences that extend far beyond traditional sponsorship.
         </h1>
         <div className="mt-16 grid gap-px bg-paper/10 md:grid-cols-3">

@@ -17,7 +17,7 @@ export default async function ConfirmPage({
   return (
     <Section>
       <Eyebrow>Access list</Eyebrow>
-      <h1 className="mt-6 text-4xl font-light">
+      <h1 className="display mt-6 text-4xl">
         {subscriber ? "You're on the list" : "Link no longer valid"}
       </h1>
       <p className="mt-6 max-w-xl text-paper/60">

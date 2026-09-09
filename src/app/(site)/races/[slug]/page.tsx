@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { availableUnits } from "@/lib/inventory";
 import { formatMoney } from "@/lib/money";
+import { raceImage } from "@/lib/brand";
+import { Hero } from "@/components/site/hero";
 import { AddToCart } from "@/components/site/add-to-cart";
 import { SubscribeForm } from "@/components/site/subscribe-form";
 import { ButtonLink, Eyebrow, Section } from "@/components/ui";
@@ -53,24 +55,29 @@ export default async function RaceEditionPage({ params }: Params) {
 
   return (
     <>
-      <Section>
-        <Eyebrow>
-          {edition.race.city}, {edition.race.country} — {edition.season}
-        </Eyebrow>
-        <h1 className="mt-6 text-4xl font-light md:text-5xl">{edition.race.name}</h1>
-        <p className="mt-4 text-paper/50">
+      <Hero
+        image={raceImage(edition.slug)}
+        priority
+        height="short"
+        eyebrow={`${edition.race.city}, ${edition.race.country} — ${edition.season}`}
+        title={edition.race.name}
+      >
+        <p className="eyebrow text-paper/60">
           {DATE_RANGE.format(edition.startsAt)} — {DATE_RANGE.format(edition.endsAt)}
           {edition.race.circuit ? ` · ${edition.race.circuit}` : ""}
         </p>
-        {edition.headline ? (
-          <p className="mt-10 max-w-3xl text-2xl font-light">{edition.headline}</p>
-        ) : null}
-        {edition.body ? (
-          <p className="mt-6 max-w-2xl text-paper/60">{edition.body}</p>
-        ) : null}
-      </Section>
+      </Hero>
 
-      <div className="rule" />
+      {edition.headline || edition.body ? (
+        <Section>
+          {edition.headline ? (
+            <p className="display max-w-4xl text-3xl md:text-4xl">{edition.headline}</p>
+          ) : null}
+          {edition.body ? (
+            <p className="mt-6 max-w-2xl text-paper/60">{edition.body}</p>
+          ) : null}
+        </Section>
+      ) : null}
 
       <Section>
         <div className="flex items-baseline justify-between">
@@ -83,7 +90,7 @@ export default async function RaceEditionPage({ params }: Params) {
             <div key={pkg.id} className="flex flex-col justify-between gap-6 bg-ink p-8">
               <div>
                 <p className="eyebrow text-paper/40">{pkg.kind.replace("_", " ")}</p>
-                <h2 className="mt-3 text-2xl font-light">{pkg.name}</h2>
+                <h2 className="display mt-3 text-2xl">{pkg.name}</h2>
                 {pkg.description ? (
                   <p className="mt-3 text-sm text-paper/60">{pkg.description}</p>
                 ) : null}
@@ -118,7 +125,7 @@ export default async function RaceEditionPage({ params }: Params) {
 
         <div className="mt-16 grid gap-10 md:grid-cols-2">
           <div>
-            <h3 className="text-xl font-light">Not on the list yet?</h3>
+            <h3 className="display text-2xl">Not on the list yet?</h3>
             <p className="mt-3 text-sm text-paper/60">
               Access is reviewed individually. Submit a request and our team will respond
               with availability for this round.
@@ -130,7 +137,7 @@ export default async function RaceEditionPage({ params }: Params) {
             </div>
           </div>
           <div>
-            <h3 className="text-xl font-light">Get notified for {edition.race.city}</h3>
+            <h3 className="display text-2xl">Get notified for {edition.race.city}</h3>
             <div className="mt-6">
               <SubscribeForm tags={[edition.slug]} />
             </div>

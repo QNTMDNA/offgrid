@@ -1,9 +1,18 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+const inter = Inter({ variable: "--font-body", subsets: ["latin"] });
+
+const display = localFont({
+  variable: "--font-display",
+  src: [
+    { path: "../../public/fonts/display-bold.woff2", weight: "700", style: "normal" },
+    { path: "../../public/fonts/display-italic.woff2", weight: "700", style: "italic" },
+  ],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.APP_URL ?? "http://localhost:3000"),
@@ -13,6 +22,7 @@ export const metadata: Metadata = {
   },
   description:
     "Off Grid is a global hospitality and cultural platform built around the world's most iconic races.",
+  icons: { icon: "/brand/favicon.png" },
 };
 
 export default function RootLayout({
@@ -20,7 +30,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${inter.variable} ${display.variable} font-sans antialiased`}>
         {children}
       </body>
     </html>

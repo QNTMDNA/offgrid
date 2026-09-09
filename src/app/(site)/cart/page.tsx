@@ -20,7 +20,7 @@ export default async function CartPage() {
     return (
       <Section>
         <Eyebrow>Your reservation</Eyebrow>
-        <h1 className="mt-6 text-4xl font-light">Nothing held yet</h1>
+        <h1 className="display mt-6 text-4xl">Nothing held yet</h1>
         <p className="mt-6 text-paper/60">
           Reserved packages are held for 30 minutes while you complete your details.
         </p>
@@ -40,7 +40,7 @@ export default async function CartPage() {
   return (
     <Section>
       <Eyebrow>Your reservation</Eyebrow>
-      <h1 className="mt-6 text-4xl font-light">Held for 30 minutes</h1>
+      <h1 className="display mt-6 text-4xl">Held for 30 minutes</h1>
 
       <ul className="mt-12 divide-y divide-paper/10 border-y border-paper/10">
         {cart.items.map((item) => {
