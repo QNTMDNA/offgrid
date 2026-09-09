@@ -25,7 +25,12 @@ function actionOrigins(): string[] {
 
 const nextConfig: NextConfig = {
   experimental: {
-    serverActions: { allowedOrigins: actionOrigins() },
+    serverActions: {
+      allowedOrigins: actionOrigins(),
+      // Deck and race-artwork uploads go through Server Actions; the 1 MB
+      // default rejects them before the size checks in the storage layer.
+      bodySizeLimit: "64mb",
+    },
   },
   async redirects() {
     return legacyRedirects;
